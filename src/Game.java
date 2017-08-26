@@ -26,7 +26,45 @@ public class Game extends JPanel implements Runnable, KeyListener, MouseListener
     }
 
     void generate() {
-        px=50; py=70;
+        double height=55;
+        for(int x=0;x<W;x++) {
+            height += (random.nextDouble()-0.5)*1.4;
+            height=Math.max(49,Math.min(64,height));
+            int biome=(x/100)%4;
+            int top=(int)height;
+            if(biome==0) top=48+(int)(3*Math.sin(x/15.0));
+            if(biome==1) top=51+(int)(2*Math.sin(x/18.0));
+            if(biome==2 || biome==3) top=57+(int)(3*Math.sin(x/21.0));
+            for(int y=0;y<H;y++) {
+                int b=AIR;
+                if(y==0) b=BEDROCK;
+                else if(y<=top) {
+                    if(y==top) b=(biome==0 || biome==1 || top<=SEA+1)?SAND:GRASS;
+                    else if(y>top-4) b=(biome==0 || biome==1)?SAND:DIRT;
+                    else {
+                        b=STONE;
+                        if(y<42 && random.nextInt(75)==0) b=IRON;
+                        if(y<23 && random.nextInt(180)==0) b=DIAMOND;
+                    }
+                } else if(y<=SEA) b=WATER;
+                world[x][y]=b;
+            }
+        }
+        for(int x=3;x<W-3;x++) {
+            int biome=(x/100)%4;
+            int top=H-7;
+            while(top>0 && world[x][top]!=GRASS) top--;
+            if(biome==3 && top>SEA+1 && random.nextInt(9)==0) {
+                for(int y=top+1;y<=top+4;y++) world[x][y]=LOG;
+                for(int dx=-2;dx<=2;dx++) for(int dy=3;dy<=6;dy++)
+                    if(Math.abs(dx)+Math.abs(dy-4)<4 && x+dx>=0 && x+dx<W && top+dy<H && world[x+dx][top+dy]==AIR) world[x+dx][top+dy]=LEAF;
+            }
+        }
+        int spawn=220;
+        while(spawn<W-1 && world[spawn][SEA+1]==WATER) spawn++;
+        int ground=H-2;
+        while(ground>0 && !solid(world[spawn][ground])) ground--;
+        px=spawn+0.1; py=ground+1;
     }
 
     boolean solid(int b) { return b!=AIR && b!=WATER && b!=LEAF; }
