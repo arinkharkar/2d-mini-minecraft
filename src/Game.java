@@ -75,7 +75,15 @@ public class Game extends JPanel implements Runnable, KeyListener, MouseListener
         return false;
     }
     void updateGame() {
-
+        vx=(right?0.12:0)-(left?0.12:0);
+        if(!collides(px+vx,py)) px+=vx;
+        if(jump && onGround) { vy=0.28; onGround=false; }
+        vy=Math.max(-0.32,vy-0.015);
+        double next=py+vy;
+        if(!collides(px,next)) { py=next; onGround=false; }
+        else { if(vy<0) onGround=true; vy=0; }
+        cameraX=(int)(px*TILE-getWidth()/2);
+        cameraY=(int)((H-py)*TILE-getHeight()/2);
     }
     public void run() {
         while(true) { updateGame(); repaint(); try { Thread.sleep(16); } catch(InterruptedException e) { return; } }
