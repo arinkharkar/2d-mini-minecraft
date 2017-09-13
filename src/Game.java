@@ -90,6 +90,42 @@ public class Game extends JPanel implements Runnable, KeyListener, MouseListener
     }
     protected void paintComponent(Graphics graphics) {
         super.paintComponent(graphics);
+        Graphics2D g=(Graphics2D)graphics;
+        g.setColor(new Color(125,195,245)); g.fillRect(0,0,getWidth(),getHeight());
+        g.setColor(Color.YELLOW); g.fillOval(45,35,55,55);
+        int start=Math.max(0,cameraX/TILE), end=Math.min(W,(cameraX+getWidth())/TILE+2);
+        for(int x=start;x<end;x++) for(int y=0;y<H;y++) {
+            int sy=(H-1-y)*TILE-cameraY;
+            if(sy < -TILE || sy>getHeight()) continue;
+            int b=world[x][y]; if(b==AIR) continue;
+            int sx=x*TILE-cameraX;
+            g.setColor(colors[b]); g.fillRect(sx,sy,TILE,TILE);
+            if(b==GRASS) { g.setColor(colors[DIRT]); g.fillRect(sx,sy+7,TILE,TILE-7); }
+            if(b==IRON || b==DIAMOND) { g.setColor(colors[STONE]); g.fillRect(sx,sy,TILE,TILE); g.setColor(colors[b]); g.fillRect(sx+4,sy+5,6,6); g.fillRect(sx+14,sy+13,6,6); }
+            g.setColor(new Color(0,0,0,35)); g.drawRect(sx,sy,TILE,TILE);
+        }
+        int sx=(int)(px*TILE)-cameraX, sy=(int)((H-py-1.8)*TILE)-cameraY;
+        g.setColor(new Color(230,180,140)); g.fillRect(sx+3,sy,12,13);
+        g.setColor(new Color(40,140,180)); g.fillRect(sx+2,sy+13,14,16);
+        g.setColor(new Color(50,55,110)); g.fillRect(sx+2,sy+29,14,14);
+        g.setColor(Color.BLACK); g.fillRect(sx+11,sy+4,2,2);
+        g.setColor(new Color(0,0,0,130)); g.fillRect(0,getHeight()-74,getWidth(),74);
+        g.setFont(new Font("Arial",Font.PLAIN,14));
+        for(int i=1;i<=9;i++) {
+            int x=8+(i-1)*65; g.setColor(i==selected?Color.YELLOW:Color.LIGHT_GRAY); g.drawRect(x,getHeight()-65,60,54);
+            g.setColor(colors[i]); g.fillRect(x+4,getHeight()-60,18,18); g.setColor(Color.WHITE);
+            g.drawString(""+i+": "+inventory[i],x+4,getHeight()-26);
+        }
+        g.setColor(Color.WHITE); g.drawString("Selected: "+names[selected]+"   A/D move, Space jump, mouse mine/place, C craft",10,20);
+        if(System.currentTimeMillis()<messageUntil) g.drawString(message,10,42);
+        if(craft) {
+            g.setColor(new Color(40,40,40,230)); g.fillRect(200,100,530,190);
+            g.setColor(Color.WHITE); g.drawString("Crafting - press a key (C to close)",220,130);
+            g.drawString("P: 1 log -> 4 planks   (place with 0)",220,160);
+            g.drawString("S: 2 planks -> 4 sticks",220,190);
+            g.drawString("K: 3 stone + 2 sticks -> pickaxe (needed for ores)",220,220);
+            g.drawString("Planks: "+inventory[11]+"   Sticks: "+inventory[12]+"   Pickaxes: "+inventory[13],220,260);
+        }
     }
     void say(String s) { message=s; messageUntil=System.currentTimeMillis()+2500; }
     public void mousePressed(MouseEvent e) {
