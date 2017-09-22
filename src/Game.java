@@ -129,14 +129,37 @@ public class Game extends JPanel implements Runnable, KeyListener, MouseListener
     }
     void say(String s) { message=s; messageUntil=System.currentTimeMillis()+2500; }
     public void mousePressed(MouseEvent e) {
-
+        if(craft) return;
+        int x=(e.getX()+cameraX)/TILE, y=H-1-(e.getY()+cameraY)/TILE;
+        if(x<0 || x>=W || y<0 || y>=H || Math.hypot(x+0.5-(px+0.35),y+0.5-(py+0.8))>5) return;
+        int b=world[x][y];
+        if(SwingUtilities.isLeftMouseButton(e)) {
+            if(b==AIR || b==WATER || b==BEDROCK) return;
+            if((b==IRON || b==DIAMOND) && inventory[13]==0) { say("You need a pickaxe for ore!"); return; }
+            world[x][y]=AIR; inventory[b]++;
+        } else if(SwingUtilities.isRightMouseButton(e)) {
+            if((b!=AIR && b!=WATER) || inventory[selected]<=0) return;
+            int place=selected; world[x][y]=place;
+            if(collides(px,py)) { world[x][y]=b; return; }
+            inventory[selected]--;
+        }
     }
     public void keyPressed(KeyEvent e) {
-
+        int k=e.getKeyCode();
+        if(k==KeyEvent.VK_C) { craft=!craft; return; }
+        if(craft) {
+            if(k==KeyEvent.VK_P && inventory[LOG]>=1) { inventory[LOG]--; inventory[11]+=4; say("Made planks"); }
+            if(k==KeyEvent.VK_S && inventory[11]>=2) { inventory[11]-=2; inventory[12]+=4; say("Made sticks"); }
+            if(k==KeyEvent.VK_K && inventory[STONE]>=3 && inventory[12]>=2) { inventory[STONE]-=3; inventory[12]-=2; inventory[13]++; say("Made a pickaxe"); }
+            return;
+        }
+        if(k==KeyEvent.VK_A || k==KeyEvent.VK_LEFT) left=true;
+        if(k==KeyEvent.VK_D || k==KeyEvent.VK_RIGHT) right=true;
+        if(k==KeyEvent.VK_SPACE || k==KeyEvent.VK_W || k==KeyEvent.VK_UP) jump=true;
+        if(k>=KeyEvent.VK_1 && k<=KeyEvent.VK_9) selected=k-KeyEvent.VK_0;
+        if(k==KeyEvent.VK_0) selected=11;
     }
-    public void keyReleased(KeyEvent e) {
-
-    }
+    public void keyReleased(KeyEvent e) { int k=e.getKeyCode(); if(k==KeyEvent.VK_A || k==KeyEvent.VK_LEFT) left=false; if(k==KeyEvent.VK_D || k==KeyEvent.VK_RIGHT) right=false; if(k==KeyEvent.VK_SPACE || k==KeyEvent.VK_W || k==KeyEvent.VK_UP) jump=false; }
     public void keyTyped(KeyEvent e) {} public void mouseReleased(MouseEvent e) {} public void mouseClicked(MouseEvent e) {} public void mouseEntered(MouseEvent e) {} public void mouseExited(MouseEvent e) {} public void mouseMoved(MouseEvent e) { mouseX=e.getX(); mouseY=e.getY(); } public void mouseDragged(MouseEvent e) {}
     public static void main(String[] args) {
         JFrame frame=new JFrame("2D Minecraft"); Game game=new Game(); frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE); frame.add(game); frame.pack(); frame.setLocationRelativeTo(null); frame.setVisible(true); game.requestFocusInWindow(); new Thread(game).start();
