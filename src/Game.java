@@ -16,6 +16,7 @@ public class Game extends JPanel implements Runnable, KeyListener, MouseListener
     int selected=2, mouseX,mouseY, cameraX,cameraY;
     String message="Welcome!";
     long messageUntil;
+    int ticks;
     JFrame frame;
 
     public Game() {
@@ -75,6 +76,7 @@ public class Game extends JPanel implements Runnable, KeyListener, MouseListener
         return false;
     }
     void updateGame() {
+        ticks++;
         vx=(right?0.12:0)-(left?0.12:0);
         if(!collides(px+vx,py)) px+=vx;
         if(jump && onGround) { vy=0.28; onGround=false; }
@@ -101,6 +103,24 @@ public class Game extends JPanel implements Runnable, KeyListener, MouseListener
             int sx=x*TILE-cameraX;
             g.setColor(colors[b]); g.fillRect(sx,sy,TILE,TILE);
             if(b==GRASS) { g.setColor(colors[DIRT]); g.fillRect(sx,sy+7,TILE,TILE-7); }
+            if(b==DIRT || b==GRASS || b==SAND || b==STONE || b==BEDROCK || b==LEAF) {
+                g.setColor(new Color(0,0,0,30));
+                for(int n=0;n<5;n++) {
+                    int xx=Math.floorMod(x*31+y*17+n*13,20);
+                    int yy=Math.floorMod(x*11+y*23+n*7,20);
+                    if(b!=GRASS || yy>7) g.fillRect(sx+xx,sy+yy,3,3);
+                }
+            }
+            if(b==LOG || b==11) {
+                g.setColor(new Color(60,35,15,80));
+                if(b==LOG) { g.fillRect(sx+5,sy,3,24); g.fillRect(sx+16,sy,3,24); }
+                else { g.fillRect(sx,sy+7,24,2); g.fillRect(sx,sy+16,24,2); }
+            }
+            if(b==WATER) {
+                g.setColor(new Color(210,235,255,90));
+                int wave=(ticks/12+x*7+y*3)%16;
+                g.fillRect(sx+wave,sy+5,7,2); g.fillRect(sx+(wave+9)%18,sy+16,5,2);
+            }
             if(b==IRON || b==DIAMOND) { g.setColor(colors[STONE]); g.fillRect(sx,sy,TILE,TILE); g.setColor(colors[b]); g.fillRect(sx+4,sy+5,6,6); g.fillRect(sx+14,sy+13,6,6); }
             g.setColor(new Color(0,0,0,35)); g.drawRect(sx,sy,TILE,TILE);
         }
