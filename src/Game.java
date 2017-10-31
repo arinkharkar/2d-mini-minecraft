@@ -127,7 +127,9 @@ public class Game extends JPanel implements Runnable, KeyListener, MouseListener
         int sx=(int)(px*TILE)-cameraX, sy=(int)((H-py-1.8)*TILE)-cameraY;
         g.setColor(new Color(230,180,140)); g.fillRect(sx+3,sy,12,13);
         g.setColor(new Color(40,140,180)); g.fillRect(sx+2,sy+13,14,16);
-        g.setColor(new Color(50,55,110)); g.fillRect(sx+2,sy+29,14,14);
+        g.setColor(new Color(50,55,110));
+        int step=(left || right) && onGround ? (ticks/8)%2 : 0;
+        g.fillRect(sx+2,sy+29,6,step==0?14:10); g.fillRect(sx+10,sy+29,6,step==0?10:14);
         g.setColor(Color.BLACK); g.fillRect(sx+11,sy+4,2,2);
         g.setColor(new Color(0,0,0,130)); g.fillRect(0,getHeight()-74,getWidth(),74);
         g.setFont(new Font("Arial",Font.PLAIN,14));
