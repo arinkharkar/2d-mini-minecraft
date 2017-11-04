@@ -141,17 +141,37 @@ public class Game extends JPanel implements Runnable, KeyListener, MouseListener
         g.setColor(Color.WHITE); g.drawString("Selected: "+names[selected]+"   A/D move, Space jump, mouse mine/place, C craft",10,20);
         if(System.currentTimeMillis()<messageUntil) g.drawString(message,10,42);
         if(craft) {
-            g.setColor(new Color(40,40,40,230)); g.fillRect(200,100,530,190);
-            g.setColor(Color.WHITE); g.drawString("Crafting - press a key (C to close)",220,130);
-            g.drawString("P: 1 log -> 4 planks   (place with 0)",220,160);
-            g.drawString("S: 2 planks -> 4 sticks",220,190);
-            g.drawString("K: 3 stone + 2 sticks -> pickaxe (needed for ores)",220,220);
-            g.drawString("Planks: "+inventory[11]+"   Sticks: "+inventory[12]+"   Pickaxes: "+inventory[13],220,260);
+            int ox=(getWidth()-530)/2, oy=90;
+            g.setColor(new Color(45,40,35,240)); g.fillRect(ox,oy,530,310);
+            g.setColor(Color.WHITE); g.drawRect(ox,oy,530,310);
+            g.drawString("Crafting   -   click a recipe or press its key   -   C to close",ox+15,oy+25);
+            String[] titles={"P: Planks x4", "S: Sticks x4", "K: Pickaxe x1"};
+            String[] costs={"1 log (you have "+inventory[LOG]+")", "2 planks (you have "+inventory[11]+")", "3 stone + 2 sticks (you have "+inventory[STONE]+" and "+inventory[12]+")"};
+            boolean[] ready={inventory[LOG]>=1,inventory[11]>=2,inventory[STONE]>=3 && inventory[12]>=2};
+            for(int i=0;i<3;i++) {
+                int y=oy+42+i*72;
+                g.setColor(ready[i]?new Color(100,130,75):new Color(85,80,75)); g.fillRect(ox+15,y,500,62);
+                g.setColor(Color.WHITE); g.drawRect(ox+15,y,500,62);
+                g.drawString(titles[i]+(ready[i]?"   [Craft]":"   [Need materials]"),ox+28,y+23);
+                g.drawString(costs[i],ox+28,y+45);
+            }
+            g.drawString("Planks: "+inventory[11]+"   Sticks: "+inventory[12]+"   Pickaxes: "+inventory[13]+"   (0 selects planks)",ox+15,oy+285);
         }
     }
+    void makeRecipe(int recipe) {
+        if(recipe==0 && inventory[LOG]>=1) { inventory[LOG]--; inventory[11]+=4; say("Made planks"); }
+        else if(recipe==1 && inventory[11]>=2) { inventory[11]-=2; inventory[12]+=4; say("Made sticks"); }
+        else if(recipe==2 && inventory[STONE]>=3 && inventory[12]>=2) { inventory[STONE]-=3; inventory[12]-=2; inventory[13]++; say("Made a pickaxe"); }
+        else say("Not enough materials");
+    }
+
     void say(String s) { message=s; messageUntil=System.currentTimeMillis()+2500; }
     public void mousePressed(MouseEvent e) {
-        if(craft) return;
+        if(craft) {
+            int ox=(getWidth()-530)/2, y=e.getY()-132;
+            if(SwingUtilities.isLeftMouseButton(e) && e.getX()>=ox+15 && e.getX()<=ox+515 && y>=0 && y<206 && y%72<62) makeRecipe(y/72);
+            return;
+        }
         int x=(e.getX()+cameraX)/TILE, y=H-1-(e.getY()+cameraY)/TILE;
         if(x<0 || x>=W || y<0 || y>=H || Math.hypot(x+0.5-(px+0.35),y+0.5-(py+0.8))>5) return;
         int b=world[x][y];
@@ -168,11 +188,11 @@ public class Game extends JPanel implements Runnable, KeyListener, MouseListener
     }
     public void keyPressed(KeyEvent e) {
         int k=e.getKeyCode();
-        if(k==KeyEvent.VK_C) { craft=!craft; return; }
+        if(k==KeyEvent.VK_C) { craft=!craft; left=false; right=false; jump=false; return; }
         if(craft) {
-            if(k==KeyEvent.VK_P && inventory[LOG]>=1) { inventory[LOG]--; inventory[11]+=4; say("Made planks"); }
-            if(k==KeyEvent.VK_S && inventory[11]>=2) { inventory[11]-=2; inventory[12]+=4; say("Made sticks"); }
-            if(k==KeyEvent.VK_K && inventory[STONE]>=3 && inventory[12]>=2) { inventory[STONE]-=3; inventory[12]-=2; inventory[13]++; say("Made a pickaxe"); }
+            if(k==KeyEvent.VK_P) makeRecipe(0);
+            if(k==KeyEvent.VK_S) makeRecipe(1);
+            if(k==KeyEvent.VK_K) makeRecipe(2);
             return;
         }
         if(k==KeyEvent.VK_A || k==KeyEvent.VK_LEFT) left=true;
