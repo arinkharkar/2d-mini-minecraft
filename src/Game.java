@@ -17,6 +17,8 @@ public class Game extends JPanel implements Runnable, KeyListener, MouseListener
     String message="Welcome!";
     long messageUntil;
     int ticks;
+    boolean mining;
+    int mineX=-1, mineY=-1, mineTicks;
     JFrame frame;
 
     public Game() {
@@ -77,6 +79,21 @@ public class Game extends JPanel implements Runnable, KeyListener, MouseListener
     }
     void updateGame() {
         ticks++;
+        if(mining && !craft) {
+            int x=Math.floorDiv(mouseX+cameraX,TILE), y=H-1-Math.floorDiv(mouseY+cameraY,TILE);
+            int b=block(x,y);
+            if(x<0 || x>=W || y<0 || y>=H || Math.hypot(x+0.5-(px+0.35),y+0.5-(py+0.8))>5 || b==AIR || b==WATER || b==BEDROCK) {
+                mineX=-1; mineY=-1; mineTicks=0;
+            } else {
+                if(x!=mineX || y!=mineY) { mineX=x; mineY=y; mineTicks=0; }
+                int duration=miningTime(b);
+                if(++mineTicks>=duration) {
+                    if((b==IRON || b==DIAMOND) && (selected!=13 || inventory[13]==0)) say("Use a pickaxe for ore!");
+                    else { world[x][y]=AIR; inventory[b]++; }
+                    mineX=-1; mineY=-1; mineTicks=0;
+                }
+            }
+        }
         vx=(right?0.12:0)-(left?0.12:0);
         if(!collides(px+vx,py)) px+=vx;
         if(jump && onGround) { vy=0.28; onGround=false; }
@@ -87,6 +104,13 @@ public class Game extends JPanel implements Runnable, KeyListener, MouseListener
         cameraX=(int)(px*TILE-getWidth()/2);
         cameraY=(int)((H-py)*TILE-getHeight()/2);
     }
+    int miningTime(int b) {
+        boolean tool=selected==13 && inventory[13]>0;
+        if(b==STONE || b==IRON || b==DIAMOND) return tool?25:150;
+        if(b==LOG) return 45;
+        if(b==LEAF) return 10;
+        return 20;
+    }
     public void run() {
         while(true) { updateGame(); repaint(); try { Thread.sleep(16); } catch(InterruptedException e) { return; } }
     }
@@ -94,7 +118,12 @@ public class Game extends JPanel implements Runnable, KeyListener, MouseListener
         super.paintComponent(graphics);
         Graphics2D g=(Graphics2D)graphics;
         g.setColor(new Color(125,195,245)); g.fillRect(0,0,getWidth(),getHeight());
-        g.setColor(Color.YELLOW); g.fillOval(45,35,55,55);
+        g.setColor(new Color(255,250,170)); g.fillRect(45,35,54,54);
+        g.setColor(new Color(255,225,65)); g.fillRect(51,41,42,42);
+        g.setColor(new Color(255,240,100)); g.fillRect(57,46,25,25);
+        g.setColor(new Color(230,245,255));
+        g.fillRect(170,55,75,12); g.fillRect(185,47,38,12);
+        g.fillRect(600,80,92,12); g.fillRect(620,72,45,12);
         int start=Math.max(0,cameraX/TILE), end=Math.min(W,(cameraX+getWidth())/TILE+2);
         for(int x=start;x<end;x++) for(int y=0;y<H;y++) {
             int sy=(H-1-y)*TILE-cameraY;
@@ -123,6 +152,14 @@ public class Game extends JPanel implements Runnable, KeyListener, MouseListener
             }
             if(b==IRON || b==DIAMOND) { g.setColor(colors[STONE]); g.fillRect(sx,sy,TILE,TILE); g.setColor(colors[b]); g.fillRect(sx+4,sy+5,6,6); g.fillRect(sx+14,sy+13,6,6); }
             g.setColor(new Color(0,0,0,35)); g.drawRect(sx,sy,TILE,TILE);
+            if(mining && x==mineX && y==mineY && mineTicks>0) {
+                int stage=mineTicks*4/miningTime(b);
+                g.setColor(new Color(35,30,25,190));
+                g.drawLine(sx+12,sy+1,sx+10,sy+9); g.drawLine(sx+10,sy+9,sx+15,sy+14);
+                if(stage>=1) g.drawLine(sx+10,sy+9,sx+4,sy+13);
+                if(stage>=2) { g.drawLine(sx+15,sy+14,sx+20,sy+20); g.drawLine(sx+15,sy+14,sx+10,sy+22); }
+                if(stage>=3) { g.drawLine(sx+10,sy+9,sx+17,sy+5); g.drawLine(sx+4,sy+13,sx+1,sy+20); }
+            }
         }
         int sx=(int)(px*TILE)-cameraX, sy=(int)((H-py-1.8)*TILE)-cameraY;
         g.setColor(new Color(230,180,140)); g.fillRect(sx+3,sy,12,13);
@@ -131,14 +168,26 @@ public class Game extends JPanel implements Runnable, KeyListener, MouseListener
         int step=(left || right) && onGround ? (ticks/8)%2 : 0;
         g.fillRect(sx+2,sy+29,6,step==0?14:10); g.fillRect(sx+10,sy+29,6,step==0?10:14);
         g.setColor(Color.BLACK); g.fillRect(sx+11,sy+4,2,2);
+        if(selected==13 && inventory[13]>0) {
+            int swing=mining?(ticks/6)%2*4:0;
+            g.setColor(new Color(115,70,35)); g.fillRect(sx+16,sy+18+swing,4,18);
+            g.setColor(new Color(150,150,150)); g.fillRect(sx+12,sy+16+swing,13,5);
+        }
         g.setColor(new Color(0,0,0,130)); g.fillRect(0,getHeight()-74,getWidth(),74);
         g.setFont(new Font("Arial",Font.PLAIN,14));
-        for(int i=1;i<=9;i++) {
-            int x=8+(i-1)*65; g.setColor(i==selected?Color.YELLOW:Color.LIGHT_GRAY); g.drawRect(x,getHeight()-65,60,54);
-            g.setColor(colors[i]); g.fillRect(x+4,getHeight()-60,18,18); g.setColor(Color.WHITE);
-            g.drawString(""+i+": "+inventory[i],x+4,getHeight()-26);
+        int[] slots={1,2,3,4,5,6,7,8,9,11,12,13};
+        String[] keys={"1","2","3","4","5","6","7","8","9","0","-","="};
+        for(int i=0;i<slots.length;i++) {
+            int item=slots[i], x=8+i*69;
+            g.setColor(item==selected?Color.YELLOW:Color.LIGHT_GRAY); g.drawRect(x,getHeight()-65,65,54);
+            if(item<colors.length) { g.setColor(colors[item]); g.fillRect(x+4,getHeight()-60,14,14); }
+            else { g.setColor(item==12?new Color(165,110,55):Color.LIGHT_GRAY); g.fillRect(x+4,getHeight()-60,14,5); }
+            g.setColor(Color.WHITE); g.setFont(new Font("Arial",Font.PLAIN,10));
+            g.drawString(keys[i]+" "+names[item],x+3,getHeight()-30);
+            g.drawString(""+inventory[item],x+4,getHeight()-14);
         }
-        g.setColor(Color.WHITE); g.drawString("Selected: "+names[selected]+"   A/D move, Space jump, mouse mine/place, C craft",10,20);
+        g.setFont(new Font("Arial",Font.PLAIN,14));
+        g.setColor(Color.WHITE); g.drawString("Selected: "+names[selected]+"   A/D move, Space jump, hold left mouse to mine, right click to place, C craft",10,20);
         if(System.currentTimeMillis()<messageUntil) g.drawString(message,10,42);
         if(craft) {
             int ox=(getWidth()-530)/2, oy=90;
@@ -172,23 +221,22 @@ public class Game extends JPanel implements Runnable, KeyListener, MouseListener
             if(SwingUtilities.isLeftMouseButton(e) && e.getX()>=ox+15 && e.getX()<=ox+515 && y>=0 && y<206 && y%72<62) makeRecipe(y/72);
             return;
         }
-        int x=(e.getX()+cameraX)/TILE, y=H-1-(e.getY()+cameraY)/TILE;
+        mouseX=e.getX(); mouseY=e.getY();
+        if(SwingUtilities.isLeftMouseButton(e)) { mining=true; return; }
+        int x=Math.floorDiv(e.getX()+cameraX,TILE), y=H-1-Math.floorDiv(e.getY()+cameraY,TILE);
         if(x<0 || x>=W || y<0 || y>=H || Math.hypot(x+0.5-(px+0.35),y+0.5-(py+0.8))>5) return;
         int b=world[x][y];
-        if(SwingUtilities.isLeftMouseButton(e)) {
-            if(b==AIR || b==WATER || b==BEDROCK) return;
-            if((b==IRON || b==DIAMOND) && inventory[13]==0) { say("You need a pickaxe for ore!"); return; }
-            world[x][y]=AIR; inventory[b]++;
-        } else if(SwingUtilities.isRightMouseButton(e)) {
+        if(SwingUtilities.isRightMouseButton(e) && selected<=11 && selected!=WATER) {
             if((b!=AIR && b!=WATER) || inventory[selected]<=0) return;
-            int place=selected; world[x][y]=place;
+            world[x][y]=selected;
             if(collides(px,py)) { world[x][y]=b; return; }
             inventory[selected]--;
         }
     }
+
     public void keyPressed(KeyEvent e) {
         int k=e.getKeyCode();
-        if(k==KeyEvent.VK_C) { craft=!craft; left=false; right=false; jump=false; return; }
+        if(k==KeyEvent.VK_C) { craft=!craft; left=false; right=false; jump=false; mining=false; mineTicks=0; return; }
         if(craft) {
             if(k==KeyEvent.VK_P) makeRecipe(0);
             if(k==KeyEvent.VK_S) makeRecipe(1);
@@ -200,9 +248,11 @@ public class Game extends JPanel implements Runnable, KeyListener, MouseListener
         if(k==KeyEvent.VK_SPACE || k==KeyEvent.VK_W || k==KeyEvent.VK_UP) jump=true;
         if(k>=KeyEvent.VK_1 && k<=KeyEvent.VK_9) selected=k-KeyEvent.VK_0;
         if(k==KeyEvent.VK_0) selected=11;
+        if(k==KeyEvent.VK_MINUS) selected=12;
+        if(k==KeyEvent.VK_EQUALS) selected=13;
     }
     public void keyReleased(KeyEvent e) { int k=e.getKeyCode(); if(k==KeyEvent.VK_A || k==KeyEvent.VK_LEFT) left=false; if(k==KeyEvent.VK_D || k==KeyEvent.VK_RIGHT) right=false; if(k==KeyEvent.VK_SPACE || k==KeyEvent.VK_W || k==KeyEvent.VK_UP) jump=false; }
-    public void keyTyped(KeyEvent e) {} public void mouseReleased(MouseEvent e) {} public void mouseClicked(MouseEvent e) {} public void mouseEntered(MouseEvent e) {} public void mouseExited(MouseEvent e) {} public void mouseMoved(MouseEvent e) { mouseX=e.getX(); mouseY=e.getY(); } public void mouseDragged(MouseEvent e) {}
+    public void keyTyped(KeyEvent e) {} public void mouseReleased(MouseEvent e) { if(SwingUtilities.isLeftMouseButton(e)) { mining=false; mineTicks=0; mineX=-1; mineY=-1; } } public void mouseClicked(MouseEvent e) {} public void mouseEntered(MouseEvent e) {} public void mouseExited(MouseEvent e) {} public void mouseMoved(MouseEvent e) { mouseX=e.getX(); mouseY=e.getY(); } public void mouseDragged(MouseEvent e) { mouseX=e.getX(); mouseY=e.getY(); }
     public static void main(String[] args) {
         JFrame frame=new JFrame("2D Minecraft"); Game game=new Game(); frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE); frame.add(game); frame.pack(); frame.setLocationRelativeTo(null); frame.setVisible(true); game.requestFocusInWindow(); new Thread(game).start();
     }
