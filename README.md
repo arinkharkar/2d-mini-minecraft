@@ -1,5 +1,7 @@
 # 2D Minecraft
 
+![Screenshot of the game](images/screenshot.png)
+
 A little Java block game. Open the folder as an existing project in Eclipse and run Game.java. Java 8 or newer is needed.
 
 You can also compile and run it from a terminal:

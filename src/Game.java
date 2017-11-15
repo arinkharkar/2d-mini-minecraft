@@ -183,7 +183,13 @@ public class Game extends JPanel implements Runnable, KeyListener, MouseListener
             if(item<colors.length) { g.setColor(colors[item]); g.fillRect(x+4,getHeight()-60,14,14); }
             else { g.setColor(item==12?new Color(165,110,55):Color.LIGHT_GRAY); g.fillRect(x+4,getHeight()-60,14,5); }
             g.setColor(Color.WHITE); g.setFont(new Font("Arial",Font.PLAIN,10));
-            g.drawString(keys[i]+" "+names[item],x+3,getHeight()-30);
+            g.drawString(keys[i],x+23,getHeight()-49);
+            String label=names[item];
+            int space=label.indexOf(' ');
+            if(space>=0) {
+                g.drawString(label.substring(0,space),x+3,getHeight()-36);
+                g.drawString(label.substring(space+1),x+3,getHeight()-26);
+            } else g.drawString(label,x+3,getHeight()-31);
             g.drawString(""+inventory[item],x+4,getHeight()-14);
         }
         g.setFont(new Font("Arial",Font.PLAIN,14));
